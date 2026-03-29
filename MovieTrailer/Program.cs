@@ -1,4 +1,4 @@
-using AspNetCoreRateLimit;
+﻿using AspNetCoreRateLimit;
 using MovieTrailer.Extensions;
 using MovieTrailer.Middleware;
 using MovieTrailer.Models;
@@ -22,6 +22,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    ctx.Response.Headers.Append("X-Frame-Options", "DENY");
+    ctx.Response.Headers.Append("Referrer-Policy", "no-referrer");
+    await next();
+});
 
 app.UseHttpsRedirection();
 app.UseResponseCompression();

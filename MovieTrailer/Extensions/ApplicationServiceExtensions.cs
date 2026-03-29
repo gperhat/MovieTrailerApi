@@ -1,7 +1,8 @@
 using AspNetCoreRateLimit;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Http.Resilience;
 using MovieTrailer.Options;
 using MovieTrailer.Services;
+using Polly;
 using Serilog;
 
 namespace MovieTrailer.Extensions;
@@ -15,6 +16,7 @@ public static class ApplicationServiceExtensions
         services.AddSwaggerGen();
         services.AddResponseCompression(opts => opts.EnableForHttps = true);
         services.AddScoped<MovieDiscoveryService>();
+        services.AddScoped<TrailerResolver>();
         return services;
     }
 
@@ -51,7 +53,9 @@ public static class ApplicationServiceExtensions
             c.BaseAddress = new Uri(tmdbBase);
             c.DefaultRequestHeaders.Add("Accept", "application/json");
             c.Timeout = TimeSpan.FromSeconds(config.GetValue("Tmdb:TimeoutSeconds", 6));
-        });
+        })
+        .AddTransientHttpErrorPolicy(p =>
+            p.WaitAndRetryAsync(2, attempt => TimeSpan.FromMilliseconds(300 * attempt)));
 
         var ytBase = (config["YouTube:BaseUrl"] ?? "https://www.googleapis.com/youtube/v3").TrimEnd('/') + '/';
         services.AddHttpClient<YouTubeTrailerClient>(c =>

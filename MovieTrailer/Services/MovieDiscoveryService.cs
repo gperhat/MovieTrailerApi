@@ -3,7 +3,7 @@ using MovieTrailer.Models;
 
 namespace MovieTrailer.Services;
 
-public class MovieDiscoveryService(TmdbMovieClient tmdb, YouTubeTrailerClient youtube)
+public class MovieDiscoveryService(TmdbMovieClient tmdb, TrailerResolver trailerResolver)
 {
     private static readonly string[] _tmdbMediaTypes = ["movie", "tv"];
 
@@ -39,23 +39,12 @@ public class MovieDiscoveryService(TmdbMovieClient tmdb, YouTubeTrailerClient yo
         if (detail == null)
             throw new MovieNotFoundException(id, mediaType);
 
-        var title = detail.Title ?? detail.Name ?? "Unknown";
         var releaseDate = detail.ReleaseDate ?? detail.FirstAirDate;
-        var releaseYear = releaseDate?.Length >= 4 ? releaseDate[..4] : null;
-
-        var trailers = detail.Videos?.Results
-            .Where(v => v.Site == "YouTube")
-            .OrderByDescending(v => v.Official).ThenByDescending(v => v.PublishedAt)
-            .Select(v => new TrailerLookupResult(v.Key, v.Name, v.Site, v.Type, v.Official,
-                $"https://www.youtube.com/watch?v={v.Key}"))
-            .ToList() ?? [];
-
-        if (!trailers.Any())
-            trailers = (await youtube.FindTrailersAsync(title, releaseYear, ct)).ToList();
+        var trailers = await trailerResolver.ResolveAsync(detail, ct);
 
         return new MovieDetailsResponse(
             Id: detail.Id,
-            Title: title,
+            Title: detail.Title ?? detail.Name ?? "Unknown",
             Overview: detail.Overview,
             Tagline: detail.Tagline,
             PosterUrl: tmdb.PosterUrl(detail.PosterPath, "w500"),
