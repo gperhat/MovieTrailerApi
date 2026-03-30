@@ -17,12 +17,6 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
 app.Use(async (ctx, next) =>
 {
     ctx.Response.Headers.Append("X-Content-Type-Options", "nosniff");
@@ -31,12 +25,17 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
 app.UseHttpsRedirection();
 app.UseResponseCompression();
 app.UseSerilogRequestLogging();
 app.UseIpRateLimiting();
 app.UseCors("Frontend");
-app.UseRouting();
 app.MapControllers();
 app.MapGet("/health", (IWebHostEnvironment env) =>
     Results.Ok(new HealthResponse("healthy", DateTime.UtcNow, env.EnvironmentName)));

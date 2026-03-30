@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using MovieTrailer.Exceptions;
 using MovieTrailer.Models;
@@ -12,18 +12,13 @@ namespace MovieTrailer.Controllers;
 [Produces("application/json")]
 public class MoviesController(MovieDiscoveryService discovery, IOptions<TmdbOptions> tmdbOptions) : ControllerBase
 {
-    private readonly HashSet<string> _supportedLanguages =
-        tmdbOptions.Value.SupportedLanguages.ToHashSet();
+    private readonly HashSet<string> _supportedLanguages = tmdbOptions.Value.SupportedLanguages.ToHashSet();
 
     [HttpGet("search")]
     [ProducesResponseType(typeof(MovieSearchResultsPage), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    public async Task<IActionResult> Search(
-        [FromQuery] string q,
-        [FromQuery] int page = 1,
-        [FromQuery] string language = "en-US",
-        CancellationToken ct = default)
+    public async Task<IActionResult> Search([FromQuery] string q,[FromQuery] int page = 1,[FromQuery] string language = "en-US", CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(q) || q.Length > 200)
             return BadRequest(new { message = "Query must be between 1 and 200 characters." });
@@ -34,9 +29,6 @@ public class MoviesController(MovieDiscoveryService discovery, IOptions<TmdbOpti
         var lang = _supportedLanguages.Contains(language) ? language : "en-US";
         var results = await discovery.SearchAsync(q.Trim(), page, lang, ct);
 
-        if (results == null)
-            return StatusCode(429, new { message = "Upstream service is temporarily unavailable. Try again shortly." });
-
         return Ok(results);
     }
 
@@ -44,16 +36,12 @@ public class MoviesController(MovieDiscoveryService discovery, IOptions<TmdbOpti
     [ProducesResponseType(typeof(MovieDetailsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Detail(
-        int id,
-        [FromQuery] string type = "movie",
-        [FromQuery] string language = "en-US",
-        CancellationToken ct = default)
+    public async Task<IActionResult> Detail(int id,[FromQuery] string type = "movie",[FromQuery] string language = "en-US",CancellationToken ct = default)
     {
         if (id <= 0)
             return BadRequest(new { message = "Invalid id." });
 
-        var mediaType = type == "tv" ? "tv" : "movie";
+        var mediaType = type == "tv" ? MediaType.Tv : MediaType.Movie;
         var lang = _supportedLanguages.Contains(language) ? language : "en-US";
 
         try

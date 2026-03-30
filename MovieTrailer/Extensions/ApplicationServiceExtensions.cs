@@ -1,5 +1,4 @@
-using AspNetCoreRateLimit;
-using Microsoft.Extensions.Http.Resilience;
+﻿using AspNetCoreRateLimit;
 using MovieTrailer.Options;
 using MovieTrailer.Services;
 using Polly;

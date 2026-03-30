@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text.Json;
 using MovieTrailer.Exceptions;
 
@@ -15,6 +15,10 @@ public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddlewa
         catch (MovieNotFoundException ex)
         {
             await RespondWithError(ctx, HttpStatusCode.NotFound, ex.Message);
+        }
+        catch (TmdbRateLimitException)
+        {
+            await RespondWithError(ctx, HttpStatusCode.TooManyRequests, "Upstream service is temporarily unavailable. Try again shortly.");
         }
         catch (HttpRequestException ex)
         {

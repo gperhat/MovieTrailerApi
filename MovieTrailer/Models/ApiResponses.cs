@@ -1,4 +1,4 @@
-namespace MovieTrailer.Models;
+﻿namespace MovieTrailer.Models;
 
 public record MovieSearchResultsPage(
     int Page,

@@ -1,9 +1,10 @@
-using System.Net;
-using System.Text.Json;
-using Microsoft.Extensions.Caching.Distributed;
+﻿using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
+using MovieTrailer.Exceptions;
 using MovieTrailer.Models;
 using MovieTrailer.Options;
+using System.Net;
+using System.Text.Json;
 
 namespace MovieTrailer.Services;
 
@@ -12,12 +13,12 @@ public class TmdbMovieClient(HttpClient http, IDistributedCache cache, IOptions<
     private readonly TmdbOptions _tmdb = options.Value;
     private static readonly JsonSerializerOptions _json = new() { PropertyNameCaseInsensitive = true };
 
-    public async Task<TmdbSearchResponse?> SearchAsync(string query, int page, string language, CancellationToken ct)
+    public async Task<TmdbSearchResponse> SearchAsync(string query, int page, string language, CancellationToken ct)
     {
         var cacheKey = $"tmdb:search:{language}:{Uri.EscapeDataString(query)}:{page}";
         var cached = await cache.GetStringAsync(cacheKey, token: ct);
         if (cached != null)
-            return JsonSerializer.Deserialize<TmdbSearchResponse>(cached, _json);
+            return JsonSerializer.Deserialize<TmdbSearchResponse>(cached, _json)!;
 
         var url = $"search/multi?api_key={_tmdb.ApiKey}&query={Uri.EscapeDataString(query)}&page={page}&language={language}&include_adult=false";
         logger.LogDebug("TMDB search: {Query} page={Page} lang={Language}", query, page, language);
@@ -27,7 +28,7 @@ public class TmdbMovieClient(HttpClient http, IDistributedCache cache, IOptions<
         if (response.StatusCode == HttpStatusCode.TooManyRequests)
         {
             logger.LogWarning("TMDB rate limit reached");
-            return null;
+            throw new TmdbRateLimitException();
         }
 
         if (!response.IsSuccessStatusCode)
@@ -40,9 +41,8 @@ public class TmdbMovieClient(HttpClient http, IDistributedCache cache, IOptions<
         await cache.SetStringAsync(cacheKey, json,
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(_tmdb.SearchTtlSeconds) }, ct);
 
-        return JsonSerializer.Deserialize<TmdbSearchResponse>(json, _json);
+        return JsonSerializer.Deserialize<TmdbSearchResponse>(json, _json)!;
     }
-
     public Task<TmdbMovieDetail?> GetMovieAsync(int id, string language, CancellationToken ct) =>
         GetTmdbDetailAsync($"movie/{id}", $"tmdb:movie:{language}:{id}", language, ct);
 

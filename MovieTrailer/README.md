@@ -10,6 +10,7 @@ ASP.NET Core 8 Web API for searching movies and TV series with trailer support. 
 - Redis (optional — falls back to in-memory cache)
 - Serilog structured logging
 - AspNetCoreRateLimit
+- Polly (retry with exponential backoff)
 
 ## Getting Started
 
@@ -114,10 +115,10 @@ IP-based via AspNetCoreRateLimit:
 ```
 MovieTrailer/
 ├── Controllers/        # MoviesController
-├── Services/           # MovieDiscoveryService, TmdbMovieClient, YouTubeTrailerClient
-├── Models/             # TMDB response shapes, API DTOs
+├── Services/           # MovieDiscoveryService, TmdbMovieClient, YouTubeTrailerClient, TrailerResolver, MovieMapper
+├── Models/             # TMDB response shapes, API DTOs, MediaType enum
 ├── Options/            # TmdbOptions, YouTubeOptions — strongly typed config with ValidateOnStart
-├── Exceptions/         # MovieNotFoundException
+├── Exceptions/         # MovieNotFoundException, TmdbRateLimitException
 ├── Middleware/         # Global exception handling
 └── Extensions/         # DI registration — AddApplicationServices, AddCaching, AddExternalClients, AddApiCors, AddRateLimiting
 ```
@@ -129,3 +130,5 @@ The API is intentionally flat — one project, no Clean Architecture layers. Two
 `TmdbOptions` and `YouTubeOptions` use `[Required]` with `ValidateOnStart()` — the app refuses to start if API keys are missing rather than failing on the first request.
 
 Trailers are fetched via `append_to_response=videos` on the TMDB detail call — one HTTP request returns both movie details and trailers. YouTube is only queried when TMDB returns no video data.
+
+TMDB HTTP client uses Polly retry with exponential backoff — 2 retries at 300ms and 600ms — to handle transient upstream failures. Rate limit responses throw `TmdbRateLimitException` which surfaces as 429 to the client.
