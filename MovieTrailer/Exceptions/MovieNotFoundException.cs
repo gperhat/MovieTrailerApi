@@ -1,5 +1,5 @@
 ﻿
-using MovieTrailer.Options;
+using MovieTrailer.Models;
 
 namespace MovieTrailer.Exceptions;
 

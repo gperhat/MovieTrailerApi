@@ -1,4 +1,4 @@
-﻿namespace MovieTrailer.Options
+﻿namespace MovieTrailer.Models;
 {
     public enum MediaType
     {
