@@ -1,8 +1,7 @@
 ﻿namespace MovieTrailer.Models;
+
+public enum MediaType
 {
-    public enum MediaType
-    {
-        Movie,
-        Tv
-    }
+    Movie,
+    Tv
 }
